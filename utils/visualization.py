@@ -3,25 +3,50 @@ from skimage import io
 import matplotlib.pyplot as plt
 import numpy as np
 
-def download_content(url, filename="image.jpg", image=True):
-    """
-    Function that downloads content and opens the content
-    if it's an image
-    :param url: the url of the image
-    :param filename: the filename of the image
-    :return: the image loaded in memory
-    """
-    # We get the image address
-    r = requests.get(url)
+import sys
+import os
 
-    # We open the image in "write-mode"
+import zipfile
+from tqdm import tqdm
+
+def download_content(url, chnksz=1000, filename="image.jpg", image=True):
+    """
+    Función que se encarga de descargar un archivo deseado
+    :param url: la url de descarga
+    :param chnksz: Tamaño del chunk
+    :param filename: El nombre del archivo
+    :param image: Boolean que indica si lo que se descarga 
+    es una imagen
+    """
+    # Se hace una petición de tipo GET
+    try:
+        r = requests.get(url, stream=True)
+
+    # Si hay un problema, se cierra la ejecución.
+    except Exception as e:
+        print(f"Error de conexión con el servidor + {e}")
+        sys.exit()
+
+    # Se Abre el archivo en modo lectura
     with open(filename, "wb") as f:
-        # We write the content to the file
-        f.write(r.content)
+        bar = tqdm(
+            unit="KB",
+            desc="Descargando archivos",
+            total=int(
+                np.ceil(int(r.headers["content-length"])/chnksz)
+            )
+        )
+
+        # Para cada chunk del archivo, lo almaceno
+        # y actualizo la pantalla
+        for pkg in r.iter_content(chunk_size=chnksz):
+            f.write(r.content)
+            bar.update(int(len(pkg)/chnksz))
+        bar.close()
+    
     if image:
         return io.imread(filename)
-    else:
-        return
+    return
 
 def imshow(img, title=None, cmap="gray", axis=False):
     """
