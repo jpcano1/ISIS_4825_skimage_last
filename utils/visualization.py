@@ -40,7 +40,7 @@ def download_content(url, chnksz=1000, filename="image.jpg", image=True):
         # Para cada chunk del archivo, lo almaceno
         # y actualizo la pantalla
         for pkg in r.iter_content(chunk_size=chnksz):
-            f.write(r.content)
+            f.write(pkg)
             bar.update(int(len(pkg)/chnksz))
         bar.close()
     
