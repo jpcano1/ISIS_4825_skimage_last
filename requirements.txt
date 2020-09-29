@@ -5,3 +5,4 @@ requests
 jupyter
 opencv-python
 tqdm
+pandas

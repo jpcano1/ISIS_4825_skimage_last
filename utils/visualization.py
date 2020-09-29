@@ -129,3 +129,18 @@ def visualize_subplot(imgs: list, titles: list,
         ax.imshow(imgs[index], cmap=cmap)
         ax.set_title(title)
         plt.axis("off")
+        
+def scale(img, min, max, dtype="uint8"):
+    """
+    Función que escala los valores de una imagen entre un 
+    rango definido
+    :param img: la image que vamos a alterar
+    :param min: el valor mínimo que queremos que tenga la imagen
+    :param max: el valor máximo que queremos que tenga la imagen
+    :param dtype: el tipo de datos que queremos que tenga la imagen
+    :return: la imagen escalada
+    """
+    img_min = img.min()
+    img_max = img.max()
+    m = (max - min) / (img_max - img_min)
+    return (m * (img - img_min) + min).astype(dtype)
