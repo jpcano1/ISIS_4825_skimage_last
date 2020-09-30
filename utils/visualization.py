@@ -3,10 +3,9 @@ from skimage import io
 import matplotlib.pyplot as plt
 import numpy as np
 
-import sys
-import os
+from skimage import morphology
 
-import zipfile
+import sys
 from tqdm import tqdm
 
 def download_content(url, chnksz=1000, filename="image.jpg", image=True):
@@ -48,6 +47,15 @@ def download_content(url, chnksz=1000, filename="image.jpg", image=True):
         return io.imread(filename)
     return
 
+def cart2pol(x, y):
+    """
+    Function that calculates the polar coordinates
+    given cartesian coordinates.
+    """
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return [rho, phi]
+
 def imshow(img, title=None, cmap="gray", axis=False):
     """
     Simple function that shows the image
@@ -66,6 +74,105 @@ def imshow(img, title=None, cmap="gray", axis=False):
     # Ask about the title
     if title:
         plt.title(title)
+
+def find_start_point(img):
+    """
+    Taken From: https://www.kaggle.com/mburger/freeman-chain-code-second-attempt
+    """
+    start_point = tuple()
+    founded = False
+    for i, row in enumerate(img):
+        for j, value in enumerate(row):
+            if value == 1:
+                start_point = (i, j)
+                founded = True
+                break
+        if founded:
+            break
+    return start_point
+
+def skeletonize(segmented):
+    """
+    
+    """
+    skel = np.zeros_like(segmented)
+    seg_copy = segmented.copy()
+
+    # Get a Cross Shaped Kernel
+    elem = morphology.square(3)
+    
+    # Repeat steps 2-4
+    while True:
+        # Open the image
+        opening = morphology.binary_opening(seg_copy, elem)
+        
+        # Substract open from the original image
+        temp = np.logical_and(seg_copy, np.logical_not(opening))
+
+        # Erode the original image and refine the skeleton
+        eroded = morphology.binary_erosion(seg_copy, elem)
+        skel = np.logical_or(skel, temp)
+        seg_copy = eroded.copy()
+
+        # If there are no white pixels left the image 
+        # has been completely eroded, quit the loop
+        if (seg_copy != 0).sum() == 0:
+            break
+    return skel
+
+def freeman_chain_code(img):
+    """
+    Taken From: https://www.kaggle.com/mburger/freeman-chain-code-second-attempt
+    """
+    start_point = find_start_point(img)
+    directions = [ 0,  1,  2,
+                    7,      3,
+                    6,  5,  4]
+    dir2idx = dict(zip(directions, range(len(directions))))
+
+    change_j = [-1,  0,  1, # x or columns
+                -1,      1,
+                -1,  0,  1]
+
+    change_i = [-1, -1, -1, # y or rows
+                0,      0,
+                1,  1,  1]
+
+    border = []
+    chain = []
+    curr_point = start_point
+    for direction in directions:
+        idx = dir2idx[direction]
+        new_point = (start_point[0] + change_i[idx], 
+                    start_point[1] + change_j[idx])
+        if img[new_point] != 0: # if is ROI
+            border.append(new_point)
+            chain.append(direction)
+            curr_point = new_point
+            break
+
+    count = 0
+    while curr_point != start_point:
+        #figure direction to start search
+        b_direction = (direction + 5) % 8 
+        dirs_1 = range(b_direction, 8)
+        dirs_2 = range(0, b_direction)
+        dirs = []
+        dirs.extend(dirs_1)
+        dirs.extend(dirs_2)
+        for direction in dirs:
+            idx = dir2idx[direction]
+            new_point = (curr_point[0] + change_i[idx], 
+                        curr_point[1] + change_j[idx])
+            if img[new_point] != 0: # if is ROI
+                border.append(new_point)
+                chain.append(direction)
+                curr_point = new_point
+                break
+        if count == 10000: break
+        count += 1
+
+    return np.array(border), np.array(chain), count
 
 def visualize(img, title=None, cmap="gray", figsize: tuple=None):
     """
