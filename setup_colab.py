@@ -11,7 +11,7 @@ def download_github_content(path):
         os.system(f"touch {dir}/__init__.py")
 
     os.system(f"shred -u {path}")
-    os.system(f"wget https://github.com/jpcano1/ISIS_4825_skimage_last/raw/master/{path} -O {path}")
+    os.system(f"wget https://raw.githubusercontent.com/jpcano1/ISIS_4825_skimage_last/master/{path} -O {path}")
 
 def setup_workshop():
     try:
