@@ -138,14 +138,17 @@ def skeletonize(segmented):
             break
     return skel
 
-def freeman_chain_code(img):
+def freeman_chain_code(img, start_point=None):
     """
     Taken From: https://www.kaggle.com/mburger/freeman-chain-code-second-attempt
     """
-    start_point = find_start_point(img)
-    directions = [ 0,  1,  2,
-                    7,      3,
-                    6,  5,  4]
+
+    if not start_point:
+        start_point = find_start_point(img)
+
+    directions = [0,  1,  2,
+                7,      3,
+                6,  5,  4]
     dir2idx = dict(zip(directions, range(len(directions))))
 
     change_j = [-1,  0,  1, # x or columns
@@ -171,7 +174,7 @@ def freeman_chain_code(img):
 
     count = 0
     while curr_point != start_point:
-        #figure direction to start search
+        # figure direction to start search
         b_direction = (direction + 5) % 8 
         dirs_1 = range(b_direction, 8)
         dirs_2 = range(0, b_direction)
