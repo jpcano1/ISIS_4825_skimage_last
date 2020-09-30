@@ -1,14 +1,19 @@
 import requests
+
 from skimage import io
+from skimage import morphology
+
+import os
+from zipfile import ZipFile
+
 import matplotlib.pyplot as plt
 import numpy as np
-
-from skimage import morphology
+plt.style.use("ggplot")
 
 import sys
 from tqdm import tqdm
 
-def download_content(url, chnksz=1000, filename="image.jpg", image=True):
+def download_content(url, chnksz=1000, filename:str="image.jpg", image=True, zip=False):
     """
     Función que se encarga de descargar un archivo deseado
     :param url: la url de descarga
@@ -44,7 +49,19 @@ def download_content(url, chnksz=1000, filename="image.jpg", image=True):
         bar.close()
     
     if image:
+        format_ = filename.split(".")[1]
+        assert format_ in ["png", "jpg", "jpeg"], "Wrong file type"
         return io.imread(filename)
+    elif zip:
+        assert filename.endswith(".zip"), "Wrong filee type"
+        with ZipFile(filename, "r") as zfile:
+            print("\nExtrayendo Zip...")
+            zfile.extractall()
+            print("Eliminando Zip...")
+            os.remove(filename)
+    elif image and zip:
+        raise Exception("Just one have to be chosen: Image or Zip")
+    
     return
 
 def cart2pol(x, y):
@@ -78,6 +95,8 @@ def imshow(img, title=None, cmap="gray", axis=False):
 def find_start_point(img):
     """
     Taken From: https://www.kaggle.com/mburger/freeman-chain-code-second-attempt
+    Locates the starting point of the chain code.
+    :param img: The binarized image where we are going to work
     """
     start_point = tuple()
     founded = False
@@ -101,7 +120,6 @@ def skeletonize(segmented):
     # Get a Cross Shaped Kernel
     elem = morphology.square(3)
     
-    # Repeat steps 2-4
     while True:
         # Open the image
         opening = morphology.binary_opening(seg_copy, elem)
