@@ -13,6 +13,8 @@ plt.style.use("ggplot")
 import sys
 from tqdm import tqdm
 
+import numpy as np
+
 def download_content(url, chnksz=1000, filename:str="image.jpg", image=True, zip=False):
     """
     Función que se encarga de descargar un archivo deseado
@@ -64,14 +66,41 @@ def download_content(url, chnksz=1000, filename:str="image.jpg", image=True, zip
     
     return
 
+def distance(vec1: tuple, vec2: tuple):
+    x = (vec1[0] - vec2[0])**2
+    y = (vec1[1] - vec2[1])**2
+    return np.sqrt(x + y)
+
+def diameter(contour):
+    longest = 0
+    a, b = None, None
+    for i in range(len(contour)):
+        for j in range(i + 1, len(contour)):
+            vec1 = contour[i]; vec2 = contour[j]
+            dist = distance(vec1, vec2)
+            if dist > longest:
+                longest = dist
+                a, b = vec1, vec2
+    return a, b, longest
+
+def perimeter(contour):
+    perimeter = 0
+    for i in range(len(contour) - 1):
+        vec1 = contour[i]; vec2 = contour[i+1]
+        perimeter += distance(vec1, vec2)
+    return perimeter
+
 def cart2pol(x, y):
     """
     Function that calculates the polar coordinates
     given cartesian coordinates.
+    :param x: The x cartesian coordinate
+    :param y: The y cartesian coordinate
+    :return: the polar coordinates
     """
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
-    return [rho, phi]
+    return rho, phi
 
 def imshow(img, title=None, cmap="gray", axis=False):
     """
@@ -97,38 +126,51 @@ def find_start_point(img):
     Taken From: https://www.kaggle.com/mburger/freeman-chain-code-second-attempt
     Locates the starting point of the chain code.
     :param img: The binarized image where we are going to work
+    :return: the starting point of contour finding
     """
     start_point = tuple()
     founded = False
+    # We go for the rows
     for i, row in enumerate(img):
+        # Then the columns
         for j, value in enumerate(row):
+            # If it has value of one, it is the point
             if value == 1:
                 start_point = (i, j)
                 founded = True
                 break
+        # If we found, we break
         if founded:
             break
     return start_point
 
-def skeletonize(segmented):
+def skeletonize(segmented, elem=None):
     """
-    
+    Function that skeletonizes the binarized image
+    with a structuring element
+    :param segmented: The binarized image
+    :param elem: The Structuring element
+    :return: the skeletonized image.
     """
     skel = np.zeros_like(segmented)
     seg_copy = segmented.copy()
 
-    # Get a Cross Shaped Kernel
-    elem = morphology.square(3)
+    # Get a square of 3x3
+    if not elem:
+        elem = morphology.square(3)
     
     while True:
-        # Open the image
+        # Get the opening of the image
         opening = morphology.binary_opening(seg_copy, elem)
         
         # Substract open from the original image
+        # We do this by performing a·(~b)
         temp = np.logical_and(seg_copy, np.logical_not(opening))
 
         # Erode the original image and refine the skeleton
         eroded = morphology.binary_erosion(seg_copy, elem)
+
+        # We take te union of all with logical or
         skel = np.logical_or(skel, temp)
         seg_copy = eroded.copy()
 
@@ -136,9 +178,10 @@ def skeletonize(segmented):
         # has been completely eroded, quit the loop
         if (seg_copy != 0).sum() == 0:
             break
+
     return skel
 
-def freeman_chain_code(img, start_point=None):
+def find_contours(img, start_point=None):
     """
     Taken From: https://www.kaggle.com/mburger/freeman-chain-code-second-attempt
     """
