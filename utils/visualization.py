@@ -15,6 +15,22 @@ from tqdm import tqdm
 
 import numpy as np
 
+def create_and_verify(path1, path2):
+    full_path = os.path.join(path1, path2)
+    exists = os.path.exists(full_path)
+    if exists:
+        return full_path
+    else:
+        raise FileNotFoundError("La ruta no existe")
+
+def read_listdir(dir):
+    listdir = os.listdir(dir)
+    full_dirs = list()
+    for d in listdir:
+        full_dir = create_and_verify(dir, d)
+        full_dirs.append(full_dir)
+    return np.sort(full_dirs)
+
 def download_content(url, chnksz=1000, filename:str="image.jpg", image=True, zip=False):
     """
     Función que se encarga de descargar un archivo deseado
