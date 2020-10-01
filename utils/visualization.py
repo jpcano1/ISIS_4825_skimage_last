@@ -1,7 +1,9 @@
 import requests
+from scipy import stats
 
 from skimage import io
 from skimage import morphology
+from skimage import measure
 
 import os
 from zipfile import ZipFile
@@ -83,8 +85,8 @@ def download_content(url, chnksz=1000, filename:str="image.jpg", image=True, zip
     return
 
 def distance(vec1: tuple, vec2: tuple):
-    x = (vec1[0] - vec2[0])**2
-    y = (vec1[1] - vec2[1])**2
+    x = (vec1[1] - vec2[1])**2
+    y = (vec1[0] - vec2[0])**2
     return np.sqrt(x + y)
 
 def diameter(contour):
@@ -196,6 +198,19 @@ def skeletonize(segmented, elem=None):
             break
 
     return skel
+
+def rugosity(image):
+    var = image.var()
+    max = image.max() ** 2
+    return 1 - (1 / (1 + var/max))
+
+def moments(image, order=3):
+    arr = image.flatten()
+    return stats.moment(arr, moment=order)
+
+def centroid(img):
+    M = measure.moments(img, 1)
+    return M[1, 0] / M[0, 0], M[0, 1] / M[0, 0]
 
 def find_contours(img, start_point=None):
     """
